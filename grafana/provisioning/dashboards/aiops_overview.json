@@ -1,0 +1,642 @@
+{
+  "__inputs": [],
+  "__requires": [],
+  "title": "AIOps Anomaly Detection Platform",
+  "uid": "aiops-main-v3",
+  "version": 3,
+  "schemaVersion": 38,
+  "tags": ["aiops", "anomaly", "kubernetes", "ml"],
+  "timezone": "browser",
+  "refresh": "15s",
+  "time": { "from": "now-1h", "to": "now" },
+  "editable": true,
+  "graphTooltip": 1,
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": { "type": "grafana", "uid": "-- Grafana --" },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  },
+  "templating": {
+    "list": [
+      {
+        "current": {},
+        "datasource": { "type": "prometheus", "uid": "${DS_PROMETHEUS}" },
+        "definition": "label_values(node_uname_info, instance)",
+        "hide": 0,
+        "includeAll": false,
+        "label": "Instance",
+        "name": "instance",
+        "options": [],
+        "query": { "query": "label_values(node_uname_info, instance)", "refId": "StandardVariableQuery" },
+        "refresh": 2,
+        "sort": 0,
+        "type": "query"
+      }
+    ]
+  },
+  "panels": [
+
+    {
+      "id": 1,
+      "type": "row",
+      "title": "🔴 AIOps Engine Status",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 0 },
+      "collapsed": false
+    },
+
+    {
+      "id": 2,
+      "type": "stat",
+      "title": "Model Loaded",
+      "description": "1 = Isolation Forest model is trained and ready",
+      "gridPos": { "h": 4, "w": 4, "x": 0, "y": 1 },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "orientation": "auto",
+        "textMode": "auto",
+        "colorMode": "background",
+        "graphMode": "none"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "type": "value", "options": { "0": { "text": "NOT LOADED", "color": "red" }, "1": { "text": "LOADED", "color": "green" } } }
+          ],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] },
+          "color": { "mode": "thresholds" }
+        }
+      },
+      "targets": [{ "expr": "aiops_model_loaded", "legendFormat": "", "refId": "A", "datasource": { "type": "prometheus" } }],
+      "datasource": { "type": "prometheus" }
+    },
+
+    {
+      "id": 3,
+      "type": "stat",
+      "title": "Database Health",
+      "description": "1 = PostgreSQL is reachable",
+      "gridPos": { "h": 4, "w": 4, "x": 4, "y": 1 },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "colorMode": "background",
+        "graphMode": "none"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "mappings": [
+            { "type": "value", "options": { "0": { "text": "DOWN", "color": "red" }, "1": { "text": "HEALTHY", "color": "green" } } }
+          ],
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] },
+          "color": { "mode": "thresholds" }
+        }
+      },
+      "targets": [{ "expr": "aiops_db_healthy", "legendFormat": "", "refId": "A", "datasource": { "type": "prometheus" } }],
+      "datasource": { "type": "prometheus" }
+    },
+
+    {
+      "id": 4,
+      "type": "stat",
+      "title": "Total Anomalies Detected",
+      "gridPos": { "h": 4, "w": 4, "x": 8, "y": 1 },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "colorMode": "background",
+        "graphMode": "area"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 1 }, { "color": "red", "value": 5 }] }
+        }
+      },
+      "targets": [{ "expr": "sum(aiops_anomalies_total) or vector(0)", "legendFormat": "anomalies", "refId": "A" }],
+      "datasource": { "type": "prometheus" }
+    },
+
+    {
+      "id": 5,
+      "type": "stat",
+      "title": "Detection Cycles Run",
+      "gridPos": { "h": 4, "w": 4, "x": 12, "y": 1 },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "colorMode": "background",
+        "graphMode": "area"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "blue", "value": null }] }
+        }
+      },
+      "targets": [{ "expr": "aiops_detection_cycles_total or vector(0)", "legendFormat": "cycles", "refId": "A" }],
+      "datasource": { "type": "prometheus" }
+    },
+
+    {
+      "id": 6,
+      "type": "stat",
+      "title": "Active Anomalies Now",
+      "gridPos": { "h": 4, "w": 4, "x": 16, "y": 1 },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "colorMode": "background",
+        "graphMode": "none"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 1 }] }
+        }
+      },
+      "targets": [{ "expr": "sum(aiops_anomaly_status) or vector(0)", "legendFormat": "active", "refId": "A" }],
+      "datasource": { "type": "prometheus" }
+    },
+
+    {
+      "id": 7,
+      "type": "stat",
+      "title": "Avg API Latency",
+      "gridPos": { "h": 4, "w": 4, "x": 20, "y": 1 },
+      "options": {
+        "reduceOptions": { "calcs": ["lastNotNull"] },
+        "colorMode": "background",
+        "graphMode": "area"
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 0.1 }, { "color": "red", "value": 0.5 }] }
+        }
+      },
+      "targets": [{ "expr": "rate(aiops_api_request_duration_seconds_sum[5m]) / rate(aiops_api_request_duration_seconds_count[5m])", "legendFormat": "avg latency", "refId": "A" }],
+      "datasource": { "type": "prometheus" }
+    },
+
+    {
+      "id": 10,
+      "type": "row",
+      "title": "📊 Live Infrastructure — Node Exporter",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 5 },
+      "collapsed": false
+    },
+
+    {
+      "id": 11,
+      "type": "timeseries",
+      "title": "CPU Usage %",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 6 },
+      "options": {
+        "tooltip": { "mode": "multi" },
+        "legend": { "displayMode": "list", "placement": "bottom" }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "color": { "mode": "palette-classic" },
+          "custom": { "lineWidth": 2, "fillOpacity": 15 },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 70 }, { "color": "red", "value": 90 }] }
+        }
+      },
+      "targets": [
+        { "expr": "100 - (avg by (instance) (irate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)", "legendFormat": "CPU % {{instance}}", "refId": "A" },
+        { "expr": "aiops_metric_value{metric_name=\"cpu_usage\"}", "legendFormat": "AIOps tracked", "refId": "B" }
+      ],
+      "datasource": { "type": "prometheus" }
+    },
+
+    {
+      "id": 12,
+      "type": "timeseries",
+      "title": "Memory Usage %",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 6 },
+      "options": {
+        "tooltip": { "mode": "multi" },
+        "legend": { "displayMode": "list", "placement": "bottom" }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "min": 0,
+          "max": 100,
+          "color": { "mode": "palette-classic" },
+          "custom": { "lineWidth": 2, "fillOpacity": 15 },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 80 }, { "color": "red", "value": 95 }] }
+        }
+      },
+      "targets": [
+        { "expr": "100 - ((node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * 100)", "legendFormat": "Memory %", "refId": "A" },
+        { "expr": "aiops_metric_value{metric_name=\"memory_usage\"}", "legendFormat": "AIOps tracked", "refId": "B" }
+      ],
+      "datasource": { "type": "prometheus" }
+    },
+
+    {
+      "id": 13,
+      "type": "timeseries",
+      "title": "Network Traffic (bytes/sec)",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 14 },
+      "options": {
+        "tooltip": { "mode": "multi" },
+        "legend": { "displayMode": "list", "placement": "bottom" }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "Bps",
+          "color": { "mode": "palette-classic" },
+          "custom": { "lineWidth": 2, "fillOpacity": 10 }
+        }
+      },
+      "targets": [
+        { "expr": "sum(rate(node_network_receive_bytes_total{device!~\"lo|docker.*|br-.*|veth.*\"}[5m]))", "legendFormat": "↓ Receive", "refId": "A" },
+        { "expr": "sum(rate(node_network_transmit_bytes_total{device!~\"lo|docker.*|br-.*|veth.*\"}[5m]))", "legendFormat": "↑ Transmit", "refId": "B" }
+      ],
+      "datasource": { "type": "prometheus" }
+    },
+
+    {
+      "id": 14,
+      "type": "timeseries",
+      "title": "Network Errors / sec",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 14 },
+      "options": {
+        "tooltip": { "mode": "multi" },
+        "legend": { "displayMode": "list", "placement": "bottom" }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": { "mode": "palette-classic" },
+          "custom": { "lineWidth": 2, "fillOpacity": 10 },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 1 }] }
+        }
+      },
+      "targets": [
+        { "expr": "sum(rate(node_network_receive_errs_total[5m]))", "legendFormat": "Receive Errors", "refId": "A" },
+        { "expr": "sum(rate(node_network_transmit_errs_total[5m]))", "legendFormat": "Transmit Errors", "refId": "B" },
+        { "expr": "aiops_metric_value{metric_name=\"network_errors\"}", "legendFormat": "AIOps tracked", "refId": "C" }
+      ],
+      "datasource": { "type": "prometheus" }
+    },
+
+    {
+      "id": 15,
+      "type": "gauge",
+      "title": "CPU % (live)",
+      "gridPos": { "h": 6, "w": 6, "x": 0, "y": 22 },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "showThresholdLabels": true, "showThresholdMarkers": true },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent", "min": 0, "max": 100,
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 70 }, { "color": "red", "value": 90 }] },
+          "color": { "mode": "thresholds" }
+        }
+      },
+      "targets": [{ "expr": "100 - (avg(irate(node_cpu_seconds_total{mode=\"idle\"}[5m])) * 100)", "refId": "A" }],
+      "datasource": { "type": "prometheus" }
+    },
+
+    {
+      "id": 16,
+      "type": "gauge",
+      "title": "Memory % (live)",
+      "gridPos": { "h": 6, "w": 6, "x": 6, "y": 22 },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "showThresholdLabels": true, "showThresholdMarkers": true },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent", "min": 0, "max": 100,
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 80 }, { "color": "red", "value": 95 }] },
+          "color": { "mode": "thresholds" }
+        }
+      },
+      "targets": [{ "expr": "100 - ((node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes) * 100)", "refId": "A" }],
+      "datasource": { "type": "prometheus" }
+    },
+
+    {
+      "id": 17,
+      "type": "gauge",
+      "title": "Load Average (1m)",
+      "gridPos": { "h": 6, "w": 6, "x": 12, "y": 22 },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "showThresholdLabels": true, "showThresholdMarkers": true },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short", "min": 0, "max": 8,
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 2 }, { "color": "red", "value": 6 }] },
+          "color": { "mode": "thresholds" }
+        }
+      },
+      "targets": [{ "expr": "node_load1", "refId": "A" }],
+      "datasource": { "type": "prometheus" }
+    },
+
+    {
+      "id": 18,
+      "type": "gauge",
+      "title": "Disk Usage % (/)",
+      "gridPos": { "h": 6, "w": 6, "x": 18, "y": 22 },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "showThresholdLabels": true, "showThresholdMarkers": true },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent", "min": 0, "max": 100,
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "yellow", "value": 75 }, { "color": "red", "value": 90 }] },
+          "color": { "mode": "thresholds" }
+        }
+      },
+      "targets": [{ "expr": "100 - ((node_filesystem_avail_bytes{fstype!~\"tmpfs|overlay\",mountpoint=\"/\"} / node_filesystem_size_bytes{fstype!~\"tmpfs|overlay\",mountpoint=\"/\"}) * 100)", "refId": "A" }],
+      "datasource": { "type": "prometheus" }
+    },
+
+    {
+      "id": 20,
+      "type": "row",
+      "title": "🤖 ML Anomaly Detection Engine",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 28 },
+      "collapsed": false
+    },
+
+    {
+      "id": 21,
+      "type": "timeseries",
+      "title": "Anomaly Score per Metric  (< −0.5 = anomaly zone)",
+      "description": "Isolation Forest score. Scores below -0.5 indicate anomalous behaviour.",
+      "gridPos": { "h": 8, "w": 24, "x": 0, "y": 29 },
+      "options": {
+        "tooltip": { "mode": "multi" },
+        "legend": { "displayMode": "table", "placement": "right", "calcs": ["lastNotNull", "min", "max"] }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": { "mode": "palette-classic" },
+          "custom": { "lineWidth": 2, "fillOpacity": 5 }
+        }
+      },
+      "targets": [
+        { "expr": "aiops_anomaly_score{metric_name=\"cpu_usage\"}", "legendFormat": "CPU Score", "refId": "A" },
+        { "expr": "aiops_anomaly_score{metric_name=\"memory_usage\"}", "legendFormat": "Memory Score", "refId": "B" },
+        { "expr": "aiops_anomaly_score{metric_name=\"network_errors\"}", "legendFormat": "Network Score", "refId": "C" },
+        { "expr": "aiops_anomaly_score{metric_name=\"disk_usage\"}", "legendFormat": "Disk Score", "refId": "D" }
+      ],
+      "datasource": { "type": "prometheus" }
+    },
+
+    {
+      "id": 22,
+      "type": "timeseries",
+      "title": "Anomaly Status  (1 = ANOMALY, 0 = Normal)",
+      "gridPos": { "h": 8, "w": 16, "x": 0, "y": 37 },
+      "options": {
+        "tooltip": { "mode": "multi" },
+        "legend": { "displayMode": "list", "placement": "bottom" }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short", "min": 0, "max": 1,
+          "color": { "mode": "palette-classic" },
+          "custom": { "lineWidth": 2, "fillOpacity": 30, "drawStyle": "line", "lineInterpolation": "stepAfter" },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 1 }] }
+        }
+      },
+      "targets": [
+        { "expr": "aiops_anomaly_status{metric_name=\"cpu_usage\"}", "legendFormat": "CPU", "refId": "A" },
+        { "expr": "aiops_anomaly_status{metric_name=\"memory_usage\"}", "legendFormat": "Memory", "refId": "B" },
+        { "expr": "aiops_anomaly_status{metric_name=\"network_errors\"}", "legendFormat": "Network", "refId": "C" },
+        { "expr": "aiops_anomaly_status{metric_name=\"disk_usage\"}", "legendFormat": "Disk", "refId": "D" }
+      ],
+      "datasource": { "type": "prometheus" }
+    },
+
+    {
+      "id": 23,
+      "type": "timeseries",
+      "title": "Anomaly Event Rate (per minute)",
+      "gridPos": { "h": 8, "w": 8, "x": 16, "y": 37 },
+      "options": {
+        "tooltip": { "mode": "multi" },
+        "legend": { "displayMode": "list", "placement": "bottom" }
+      },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": { "mode": "palette-classic" },
+          "custom": { "lineWidth": 2, "fillOpacity": 20 }
+        }
+      },
+      "targets": [{ "expr": "rate(aiops_anomalies_total[5m]) * 60", "legendFormat": "{{metric_name}}", "refId": "A" }],
+      "datasource": { "type": "prometheus" }
+    },
+
+    {
+      "id": 30,
+      "type": "row",
+      "title": "📈 AIOps API Performance",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 45 },
+      "collapsed": false
+    },
+
+    {
+      "id": 31,
+      "type": "timeseries",
+      "title": "API Request Latency — p50 / p95 / p99",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 46 },
+      "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "list", "placement": "bottom" } },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "color": { "mode": "palette-classic" },
+          "custom": { "lineWidth": 2, "fillOpacity": 5 }
+        }
+      },
+      "targets": [
+        { "expr": "histogram_quantile(0.50, rate(aiops_api_request_duration_seconds_bucket[5m]))", "legendFormat": "p50", "refId": "A" },
+        { "expr": "histogram_quantile(0.95, rate(aiops_api_request_duration_seconds_bucket[5m]))", "legendFormat": "p95", "refId": "B" },
+        { "expr": "histogram_quantile(0.99, rate(aiops_api_request_duration_seconds_bucket[5m]))", "legendFormat": "p99", "refId": "C" }
+      ],
+      "datasource": { "type": "prometheus" }
+    },
+
+    {
+      "id": 32,
+      "type": "timeseries",
+      "title": "Detection Cycle Duration — p50 / p95",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 46 },
+      "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "list", "placement": "bottom" } },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "color": { "mode": "palette-classic" },
+          "custom": { "lineWidth": 2, "fillOpacity": 10 }
+        }
+      },
+      "targets": [
+        { "expr": "histogram_quantile(0.50, rate(aiops_detection_cycle_duration_seconds_bucket[5m]))", "legendFormat": "p50", "refId": "A" },
+        { "expr": "histogram_quantile(0.95, rate(aiops_detection_cycle_duration_seconds_bucket[5m]))", "legendFormat": "p95", "refId": "B" }
+      ],
+      "datasource": { "type": "prometheus" }
+    },
+
+    {
+      "id": 40,
+      "type": "row",
+      "title": "🖥️ System Deep Dive",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 54 },
+      "collapsed": false
+    },
+
+    {
+      "id": 41,
+      "type": "timeseries",
+      "title": "CPU Mode Breakdown (stacked)",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 55 },
+      "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "table", "placement": "right", "calcs": ["mean"] } },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit", "min": 0, "max": 1,
+          "color": { "mode": "palette-classic" },
+          "custom": { "lineWidth": 1, "fillOpacity": 30, "stacking": { "mode": "normal", "group": "A" } }
+        }
+      },
+      "targets": [
+        { "expr": "avg(irate(node_cpu_seconds_total{mode=\"user\"}[5m]))", "legendFormat": "user", "refId": "A" },
+        { "expr": "avg(irate(node_cpu_seconds_total{mode=\"system\"}[5m]))", "legendFormat": "system", "refId": "B" },
+        { "expr": "avg(irate(node_cpu_seconds_total{mode=\"iowait\"}[5m]))", "legendFormat": "iowait", "refId": "C" },
+        { "expr": "avg(irate(node_cpu_seconds_total{mode=\"steal\"}[5m]))", "legendFormat": "steal", "refId": "D" }
+      ],
+      "datasource": { "type": "prometheus" }
+    },
+
+    {
+      "id": 42,
+      "type": "timeseries",
+      "title": "Memory Breakdown",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 55 },
+      "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "table", "placement": "right", "calcs": ["lastNotNull"] } },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "bytes",
+          "color": { "mode": "palette-classic" },
+          "custom": { "lineWidth": 2, "fillOpacity": 10 }
+        }
+      },
+      "targets": [
+        { "expr": "node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes", "legendFormat": "Used", "refId": "A" },
+        { "expr": "node_memory_Cached_bytes", "legendFormat": "Cached", "refId": "B" },
+        { "expr": "node_memory_Buffers_bytes", "legendFormat": "Buffers", "refId": "C" },
+        { "expr": "node_memory_MemFree_bytes", "legendFormat": "Free", "refId": "D" }
+      ],
+      "datasource": { "type": "prometheus" }
+    },
+
+    {
+      "id": 43,
+      "type": "timeseries",
+      "title": "Disk I/O (bytes/sec)",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 63 },
+      "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "list", "placement": "bottom" } },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "Bps",
+          "color": { "mode": "palette-classic" },
+          "custom": { "lineWidth": 2, "fillOpacity": 10 }
+        }
+      },
+      "targets": [
+        { "expr": "sum(rate(node_disk_read_bytes_total[5m]))", "legendFormat": "Read", "refId": "A" },
+        { "expr": "sum(rate(node_disk_written_bytes_total[5m]))", "legendFormat": "Write", "refId": "B" }
+      ],
+      "datasource": { "type": "prometheus" }
+    },
+
+    {
+      "id": 44,
+      "type": "timeseries",
+      "title": "System Load Average (1m / 5m / 15m)",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 63 },
+      "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "list", "placement": "bottom" } },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "color": { "mode": "palette-classic" },
+          "custom": { "lineWidth": 2, "fillOpacity": 10 }
+        }
+      },
+      "targets": [
+        { "expr": "node_load1", "legendFormat": "1m", "refId": "A" },
+        { "expr": "node_load5", "legendFormat": "5m", "refId": "B" },
+        { "expr": "node_load15", "legendFormat": "15m", "refId": "C" }
+      ],
+      "datasource": { "type": "prometheus" }
+    },
+
+    {
+      "id": 50,
+      "type": "row",
+      "title": "📋 Prometheus Scrape Health",
+      "gridPos": { "h": 1, "w": 24, "x": 0, "y": 71 },
+      "collapsed": false
+    },
+
+    {
+      "id": 51,
+      "type": "stat",
+      "title": "Scrape Targets UP",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 72 },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "none" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "red", "value": null }, { "color": "green", "value": 1 }] }
+        }
+      },
+      "targets": [{ "expr": "sum(up)", "legendFormat": "targets up", "refId": "A" }],
+      "datasource": { "type": "prometheus" }
+    },
+
+    {
+      "id": 52,
+      "type": "stat",
+      "title": "Scrape Targets DOWN",
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 72 },
+      "options": { "reduceOptions": { "calcs": ["lastNotNull"] }, "colorMode": "background", "graphMode": "none" },
+      "fieldConfig": {
+        "defaults": {
+          "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 1 }] }
+        }
+      },
+      "targets": [{ "expr": "sum(up == 0) or vector(0)", "legendFormat": "targets down", "refId": "A" }],
+      "datasource": { "type": "prometheus" }
+    },
+
+    {
+      "id": 53,
+      "type": "timeseries",
+      "title": "Scrape Duration per Job",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 72 },
+      "options": { "tooltip": { "mode": "multi" }, "legend": { "displayMode": "list", "placement": "bottom" } },
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "color": { "mode": "palette-classic" },
+          "custom": { "lineWidth": 2, "fillOpacity": 5 }
+        }
+      },
+      "targets": [{ "expr": "scrape_duration_seconds", "legendFormat": "{{job}}", "refId": "A" }],
+      "datasource": { "type": "prometheus" }
+    }
+
+  ]
+}

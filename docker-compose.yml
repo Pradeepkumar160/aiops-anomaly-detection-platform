@@ -1,0 +1,142 @@
+version: "3.9"
+
+# ---------------------------------------------------------------------------
+# AIOps Anomaly Detection Platform — Docker Compose
+# ---------------------------------------------------------------------------
+# Usage:
+#   cp .env.example .env       # fill in your credentials
+#   docker-compose up --build
+# ---------------------------------------------------------------------------
+
+services:
+
+  # ── AIOps FastAPI server ─────────────────────────────────────────────────
+  aiops-api:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    image: aiops-platform:latest
+    container_name: aiops-api
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      PROMETHEUS_URL: "http://prometheus:9090"
+      DATABASE_URL: "postgresql://postgres:password@postgres:5432/aiops"
+      GRAFANA_URL: "http://grafana:3000"
+      DETECTION_INTERVAL_SECONDS: "60"
+      SLACK_WEBHOOK_URL: "${SLACK_WEBHOOK_URL:-}"
+      PAGERDUTY_ROUTING_KEY: "${PAGERDUTY_ROUTING_KEY:-}"
+      GRAFANA_API_TOKEN: "${GRAFANA_API_TOKEN:-}"
+    volumes:
+      - models_data:/app/models
+    depends_on:
+      postgres:
+        condition: service_healthy
+      prometheus:
+        condition: service_started
+      grafana:
+        condition: service_started
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # ── AIOps background scheduler ───────────────────────────────────────────
+  aiops-scheduler:
+    image: aiops-platform:latest
+    container_name: aiops-scheduler
+    restart: unless-stopped
+    environment:
+      PROMETHEUS_URL: "http://prometheus:9090"
+      DATABASE_URL: "postgresql://postgres:password@postgres:5432/aiops"
+      GRAFANA_URL: "http://grafana:3000"
+      DETECTION_INTERVAL_SECONDS: "${DETECTION_INTERVAL_SECONDS:-60}"
+      SLACK_WEBHOOK_URL: "${SLACK_WEBHOOK_URL:-}"
+      PAGERDUTY_ROUTING_KEY: "${PAGERDUTY_ROUTING_KEY:-}"
+      GRAFANA_API_TOKEN: "${GRAFANA_API_TOKEN:-}"
+    volumes:
+      - models_data:/app/models
+    depends_on:
+      aiops-api:
+        condition: service_healthy
+    command: ["python", "app/scheduler.py"]
+
+  # ── PostgreSQL ────────────────────────────────────────────────────────────
+  postgres:
+    image: postgres:16-alpine
+    container_name: aiops-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: aiops
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d aiops"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Prometheus ────────────────────────────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:v2.52.0
+    container_name: aiops-prometheus
+    restart: unless-stopped
+    volumes:
+      - ./prometheus:/etc/prometheus:ro      # mounts prometheus/prometheus.yml
+      - prometheus_data:/prometheus
+    command:
+      - "--config.file=/etc/prometheus/prometheus.yml"
+      - "--storage.tsdb.path=/prometheus"
+      - "--storage.tsdb.retention.time=15d"
+      - "--web.enable-lifecycle"
+      - "--web.cors.origin=.*"               # allow cross-origin queries from dashboard.html
+    ports:
+      - "9090:9090"
+
+  # ── Node Exporter (supplies CPU/memory/disk metrics) ─────────────────────
+  node-exporter:
+    image: prom/node-exporter:v1.8.1
+    container_name: aiops-node-exporter
+    restart: unless-stopped
+    pid: host
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - "--path.procfs=/host/proc"
+      - "--path.sysfs=/host/sys"
+      - "--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)"
+    ports:
+      - "9100:9100"
+
+  # ── Grafana ───────────────────────────────────────────────────────────────
+  grafana:
+    image: grafana/grafana:11.1.0
+    container_name: aiops-grafana
+    restart: unless-stopped
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro   # auto-loads datasource + dashboard
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: "false"
+      GF_FEATURE_TOGGLES_ENABLE: "publicDashboards"
+      GF_SECURITY_ALLOW_EMBEDDING: "true"
+    ports:
+      - "3000:3000"
+
+volumes:
+  postgres_data:
+  prometheus_data:
+  grafana_data:
+  models_data:

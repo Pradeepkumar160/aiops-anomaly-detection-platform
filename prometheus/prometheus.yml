@@ -1,0 +1,29 @@
+global:
+  scrape_interval:     15s
+  evaluation_interval: 15s
+
+scrape_configs:
+
+  # ── AIOps API custom metrics ──────────────────────────────────────────
+  - job_name: 'aiops-api'
+    static_configs:
+      - targets: ['aiops-api:8000']
+    metrics_path: '/metrics'
+    scrape_interval: 15s
+
+  # ── Node Exporter (CPU / memory / disk / network) ─────────────────────
+  - job_name: 'node-exporter'
+    static_configs:
+      - targets: ['node-exporter:9100']
+    scrape_interval: 15s
+
+  # ── Prometheus self-monitoring ────────────────────────────────────────
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # ── Grafana ───────────────────────────────────────────────────────────
+  - job_name: 'grafana'
+    static_configs:
+      - targets: ['grafana:3000']
+    metrics_path: '/metrics'
