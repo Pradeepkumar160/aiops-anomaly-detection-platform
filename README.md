@@ -1,4 +1,4 @@
-# 🤖 AIOps Anomaly Detection Platform                        
+# 🤖 AIOps Anomaly Detection Platform                       
 
 > **ML-powered Kubernetes infrastructure monitoring** — detect anomalies in Prometheus metrics in real-time, fire alerts to Slack & PagerDuty, and auto-annotate Grafana dashboards.
 
